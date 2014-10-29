@@ -168,5 +168,17 @@ describe('GlobStream', function() {
 			this.stream.read(0);
 			expect(spy).to.be.calledOnce.and.calledWith(null);
 		});
+
+		it('should use the last key when no NextMarker is provided', function() {
+			this.s3.listObjects.callsArgWith(1, null, {
+				IsTruncated: true,
+				Contents: [ { Key: 'a' } ]
+			});
+			this.stream.read(0);
+			this.stream.read(0);
+			expect(this.s3.listObjects).to.be.calledWithMatch({
+				Marker: 'a'
+			});
+		});
 	});
 });
