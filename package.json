@@ -1,6 +1,6 @@
 {
 	"name": "s3-glob",
-	"version": "0.1.0",
+	"version": "0.1.1",
 	"author": "Izaak Schroeder <izaak.schroeder@gmail.com>",
 	"description": "Retrieve object list entries in S3 using minimatch-style globbing.",
 	"keywords": [ "s3", "glob" ],
