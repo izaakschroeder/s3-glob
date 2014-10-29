@@ -2,7 +2,6 @@
 'use strict';
 
 var _ = require('lodash'),
-	AWS = require('aws-sdk'),
 	Minimatch = require('minimatch').Minimatch,
 	GlobStream = require('glob');
 
@@ -11,7 +10,7 @@ describe('GlobStream', function() {
 
 		beforeEach(function() {
 			this.sandbox = sinon.sandbox.create();
-			this.s3 = sinon.createStubInstance(AWS.S3);
+			this.s3 = { listObjects: this.sandbox.stub() };
 			this.sandbox.stub(GlobStream.prototype, '_read');
 		});
 
@@ -100,8 +99,7 @@ describe('GlobStream', function() {
 
 		beforeEach(function() {
 			this.sandbox = sinon.sandbox.create();
-			this.s3 = sinon.createStubInstance(AWS.S3);
-			this.s3.listObjects = sinon.stub();
+			this.s3 = { listObjects: this.sandbox.stub() };
 			this.stream = GlobStream(this.s3, { Bucket: 'test' }, [ '*', '!b' ]);
 		});
 
