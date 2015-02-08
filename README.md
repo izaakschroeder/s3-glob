@@ -1,6 +1,6 @@
 # s3-glob
 
-> Retrieve object list entries in S3 using minimatch-style globbing.
+Retrieve object list entries in S3 using minimatch-style globbing.
 
 ![build status](http://img.shields.io/travis/izaakschroeder/s3-glob.svg?style=flat)
 ![coverage](http://img.shields.io/coveralls/izaakschroeder/s3-glob.svg?style=flat)
@@ -10,14 +10,14 @@
 
 
 Features:
- * Full support for minimatch syntax,
- * Streaming output.
+ * Full support for minimatch-style syntax,
+ * Streaming output,
+ * Ready for piping into S3.getObject or S3.headObject.
 
 ```javascript
-var S3 = require('aws-sdk').S3,
-	GlobStream = require('s3-glob');
+var GlobStream = require('s3-glob');
 
-var stream = GlobStream(new S3(), { Bucket: 'my-bucket' }, [ '*.jpg', '!test*' ]);
+var stream = new GlobStream([ 's3://my-bucket/*.jpg', '!test*' ]);
 
 stream.on('readable', function() {
 	var entry;
@@ -25,4 +25,11 @@ stream.on('readable', function() {
 		console.log(entry);
 	}
 });
+```
+
+```javascript
+var GlobStream = require('s3-glob');
+
+var stream = GlobStream([ 's3://my-bucket/*.jpg' ], { format: 'query' });
+//...
 ```

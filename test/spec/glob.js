@@ -6,91 +6,120 @@ var _ = require('lodash'),
 	GlobStream = require('glob');
 
 describe('GlobStream', function() {
+
+	beforeEach(function() {
+		this.sandbox = sinon.sandbox.create();
+		this.s3 = { listObjects: this.sandbox.stub() };
+	});
+
+	afterEach(function() {
+		this.sandbox.restore();
+	});
+
 	describe('#constructor', function() {
 
 		beforeEach(function() {
-			this.sandbox = sinon.sandbox.create();
-			this.s3 = { listObjects: this.sandbox.stub() };
 			this.sandbox.stub(GlobStream.prototype, '_read');
 		});
 
-		afterEach(function() {
-			this.sandbox.restore();
-		});
-
-		it('should throw an error when not given an S3 object', function() {
-			expect(_.partial(GlobStream)).to.throw(TypeError);
-		});
-
-		it('should throw an error when not given a bucket parameter', function() {
-			expect(_.partial(GlobStream, this.s3, { }, [ '*' ])).to.throw(TypeError);
+		it('should throw an error when given an invalid S3 object', function() {
+			expect(_.partial(GlobStream, ['*'], { s3: null }))
+				.to.throw(TypeError);
 		});
 
 		it('should throw an error when given no globs', function() {
-			expect(_.partial(GlobStream, this.s3, { Bucket: 'foo' }, [ ])).to.throw(TypeError);
+			expect(_.partial(GlobStream, [ ], { s3: this.s3 }))
+				.to.throw(TypeError);
 		});
 
 		it('should throw an error when given invalid globs', function() {
-			expect(_.partial(GlobStream, this.s3, { Bucket: 'foo' }, false)).to.throw(TypeError);
-			expect(_.partial(GlobStream, this.s3, { Bucket: 'foo' }, 5)).to.throw(TypeError);
-			expect(_.partial(GlobStream, this.s3, { Bucket: 'foo' }, [ 10 ])).to.throw(TypeError);
+			expect(_.partial(GlobStream, false))
+				.to.throw(TypeError);
+			expect(_.partial(GlobStream, 5))
+				.to.throw(TypeError);
+			expect(_.partial(GlobStream, [ 10 ]))
+				.to.throw(TypeError);
 		});
 
 		it('should throw an error when given only negative globs', function() {
-			expect(_.partial(GlobStream, this.s3, { Bucket: 'foo' }, [ '!test' ])).to.throw(TypeError);
+			expect(_.partial(GlobStream, [ '!test' ]))
+				.to.throw(TypeError);
+		});
+
+		it('should throw an error with no bucket', function() {
+			expect(_.partial(GlobStream, [ 'test' ]))
+				.to.throw(TypeError);
+		});
+
+		it('should throw an error when given invalid format', function() {
+			expect(_.partial(GlobStream, 's3://a/b', {
+				s3: this.s3,
+				format: 'foo'
+			})).to.throw(TypeError);
 		});
 
 		it('should always put the stream into object mode', function() {
-			var stream = GlobStream(this.s3, { Bucket: 'foo' }, [ '*' ], { objectMode: false });
+			var stream = GlobStream('s3://a/b', { objectMode: false });
 			expect(stream._readableState).to.have.property('objectMode', true);
 		});
 
 		it('should create minimatch objects from a singular glob', function() {
-			var stream = GlobStream(this.s3, { Bucket: 'foo' }, '*');
-			expect(stream.globs).to.have.length(1);
-			expect(stream.globs[0]).to.be.an.instanceof(Minimatch);
+			var stream = GlobStream('*', { awsOptions: { Bucket: 'foo' } });
+			expect(stream.states).to.have.length(1);
+			expect(stream.states[0].match).to.be.an.instanceof(Minimatch);
+		});
+
+		it('should create minimatch objects from an object', function() {
+			var stream = GlobStream({ Key: 'foo', Bucket: 'foo' });
+			expect(stream.states).to.have.length(1);
+			expect(stream.states[0].match).to.be.an.instanceof(Minimatch);
 		});
 	});
 
 	describe('prefix', function() {
-		it('should create a valid single prefix from a minimatch set', function() {
+		it('should make single prefix from minimatch set', function() {
 			var set = Minimatch('a/b/c').set[0];
 			expect(GlobStream.prefix(set)).to.equal('a/b/c');
 		});
-		it('should create a valid single prefix from a complex minimatch set', function() {
+		it('should make single prefix from complex minimatch set', function() {
 			var set = Minimatch('a/b/foo*.gz').set[0];
 			expect(GlobStream.prefix(set)).to.equal('a/b');
 		});
 	});
 
 	describe('prefixes', function() {
-		it('should ignore any negative minimatch items', function() {
-			var globs = [ Minimatch('!abc'), Minimatch('def'), Minimatch('!ghi') ];
-			expect(GlobStream.prefixes(globs)).to.have.length(1);
+		it('should create prefixes from a minimatch', function() {
+			var set = Minimatch('a/b/{c,d}');
+			expect(GlobStream.prefixes(set)).to.deep.equal(['a/b/c', 'a/b/d']);
 		});
-
-		it('should include all items of all sets', function() {
-			var globs = [ Minimatch('{a,b}/c'), Minimatch('d') ];
-			expect(GlobStream.prefixes(globs)).to.have.length(3);
+		it('should create a prefixes from a complex minimatch', function() {
+			var set = Minimatch('{a,c}/b/foo*.gz');
+			expect(GlobStream.prefixes(set)).to.deep.equal(['a/b', 'c/b']);
 		});
 	});
 
 	describe('#match', function() {
-		it('should return true when an entry matches all globs', function() {
-			var globs = [ Minimatch('{a,b}/*'), Minimatch('*/c') ];
-			expect(GlobStream.prototype.match.call({
-				globs: globs
-			}, {
-				Key: 'b/c'
+
+		beforeEach(function() {
+			this.stream = GlobStream(['s3://x/{a,b}/*', 's3://x/*/c', '!d/c']);
+			this.search = { match: Minimatch('{a,b}/*') };
+		});
+
+		it('should be true when an entry matches search', function() {
+			expect(this.stream.match(this.search, {
+				Key: 'a/b'
 			})).to.be.true;
 		});
 
-		it('should return false when an entry fails to match any glob', function() {
-			var globs = [ Minimatch('{a,b}/*'), Minimatch('*/c') ];
-			expect(GlobStream.prototype.match.call({
-				globs: globs
-			}, {
-				Key: 'a/b'
+		it('should be false when an entry fails to match search', function() {
+			expect(this.stream.match(this.search, {
+				Key: 'e/f/g'
+			})).to.be.false;
+		});
+
+		it('should be false when an entry matches a negate', function() {
+			expect(this.stream.match(this.search, {
+				Key: 'd/c'
 			})).to.be.false;
 		});
 	});
@@ -98,13 +127,9 @@ describe('GlobStream', function() {
 	describe('#_read', function() {
 
 		beforeEach(function() {
-			this.sandbox = sinon.sandbox.create();
-			this.s3 = { listObjects: this.sandbox.stub() };
-			this.stream = GlobStream(this.s3, { Bucket: 'test' }, [ '*', '!b' ]);
-		});
-
-		afterEach(function() {
-			this.sandbox.restore();
+			this.stream = GlobStream([ 's3://test/*?Foo=1', '!b' ], {
+				s3: this.s3
+			});
 		});
 
 		it('should make no parallel AWS calls', function(done) {
@@ -118,7 +143,7 @@ describe('GlobStream', function() {
 					expect(entry).to.not.be.null;
 				}
 			}).on('end', function() {
-				expect(this.s3.listObjects).to.be.calledTwice;
+				expect(this.s3.listObjects).to.be.calledOnce;
 				done();
 			}).on('error', function(err) {
 				done(err);
@@ -157,17 +182,28 @@ describe('GlobStream', function() {
 			expect(spy).to.be.calledOnce.and.calledWith('error', 'aws-error');
 		});
 
+		it('should emit an error if invalid format', function() {
+			var spy = this.sandbox.stub(this.stream, 'emit');
+			this.s3.listObjects.callsArgWith(1, null, {
+				IsTruncated: false,
+				Contents: [ { Key: 'a' } ]
+			});
+			this.stream.format = 'foo';
+			this.stream.read(0);
+			expect(spy).to.be.calledOnce.and.calledWith('error');
+		});
+
 		it('should emit EOS when no more states are left', function() {
 			var spy = this.sandbox.spy(this.stream, 'push');
 			this.s3.listObjects.callsArgWith(1, null, {
 				IsTruncated: false,
-				Contents: [  ]
+				Contents: [ ]
 			});
 			this.stream.read(0);
 			expect(spy).to.be.calledOnce.and.calledWith(null);
 		});
 
-		it('should use the last key when no NextMarker is provided', function() {
+		it('should use the last key when there is no NextMarker', function() {
 			this.s3.listObjects.callsArgWith(1, null, {
 				IsTruncated: true,
 				Contents: [ { Key: 'a' } ]
@@ -176,6 +212,22 @@ describe('GlobStream', function() {
 			this.stream.read(0);
 			expect(this.s3.listObjects).to.be.calledWithMatch({
 				Marker: 'a'
+			});
+		});
+
+		it('should correct query object when in query mode', function() {
+			this.stream.format = 'query';
+			var keys = [ { Key: 'a' } ];
+			var spy = this.sandbox.spy(this.stream, 'push');
+			this.s3.listObjects.callsArgWith(1, null, {
+				IsTruncated: false,
+				Contents: keys
+			});
+			this.stream.read(0);
+			expect(spy).to.be.calledWith({
+				Bucket: 'test',
+				Key: 'a',
+				Foo: '1'
 			});
 		});
 	});
