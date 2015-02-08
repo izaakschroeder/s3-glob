@@ -3,11 +3,12 @@
 'use strict';
 
 var path = require('path'),
-	AWS = require('aws-sdk'),
 	S3GlobStream = require(path.join(__dirname, '..')),
 	argv = require('yargs').argv;
 
-var stream = S3GlobStream(new AWS.S3(), { Bucket: argv.bucket }, argv._);
+console.log(argv._);
+
+var stream = S3GlobStream(argv._);
 
 stream.on('readable', function readable() {
 	var entry;
