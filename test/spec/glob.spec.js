@@ -123,6 +123,7 @@ describe('GlobStream', function() {
     beforeEach(function() {
       this.stream = new GlobStream([ 's3://test/*?Foo=1', '!b' ], {
         s3: this.s3,
+        highWaterMark: 2,
       });
     });
 
@@ -132,9 +133,10 @@ describe('GlobStream', function() {
         Contents: [ { Key: 'a' } ],
       });
       this.stream.on('readable', function() {
-        let entry;
-        while ((entry = this.read()) !== null) {
+        let entry = this.read();
+        while (entry) {
           expect(entry).to.not.be.null;
+          entry = this.read();
         }
       }).on('end', function() {
         expect(this.s3.listObjects).to.be.calledOnce;

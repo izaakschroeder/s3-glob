@@ -33,6 +33,20 @@ export default class GlobStream extends Readable {
     return _.map(match.set, GlobStream.prefix);
   }
 
+  static normalize(globs) {
+    // Handle the single value case
+    if (_.isString(globs) || _.isPlainObject(globs)) {
+      return GlobStream.normalize([ globs ]);
+    }
+
+    // Type check
+    if (!_.isArray(globs)) {
+      throw new TypeError();
+    }
+
+    return globs;
+  }
+
   /**
    * @constructor
    * @param {Array|String|Object} globs List of glob patterns to match.
@@ -51,21 +65,11 @@ export default class GlobStream extends Readable {
     format = 'object',
     unique = true,
     s3 = new AWS.S3(),
-		awsOptions = { },
+    awsOptions = { },
   } = { }) {
     // Duck typing
     if (!s3 || !_.isFunction(s3.listObjects)) {
       throw new TypeError('Bad S3.');
-    }
-
-    // Handle the single value case
-    if (_.isString(globs) || _.isPlainObject(globs)) {
-      globs = [ globs ];
-    }
-
-    // Type check
-    if (!_.isArray(globs)) {
-      throw new TypeError();
     }
 
     if (!_.contains(GlobStream.formats, format)) {
@@ -83,7 +87,7 @@ export default class GlobStream extends Readable {
     this.unique = unique;
     this.format = format;
 
-    const parts = _.groupBy(globs, (glob) => {
+    const parts = _.groupBy(GlobStream.normalize(globs), (glob) => {
       if (_.isString(glob) && glob.charAt(0) === '!') {
         return 'filter';
       }
