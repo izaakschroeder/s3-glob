@@ -1,4 +1,11 @@
 {
+  "env": {
+    "test": {
+      "plugins": [
+        "transform-adana"
+      ]
+    }
+  },
   "presets": [
     "metalab"
   ]

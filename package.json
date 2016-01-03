@@ -1,42 +1,44 @@
 {
-	"name": "s3-glob",
-	"version": "0.2.0",
-	"author": "Izaak Schroeder <izaak.schroeder@gmail.com>",
-	"description": "Retrieve object list entries in S3 using minimatch-style globbing.",
-	"keywords": [ "s3", "glob" ],
-	"license": "CC0-1.0",
-	"homepage": "https://github.com/izaakschroeder/s3-glob",
-	"repository": {
-		"type": "git",
-		"url": "https://github.com/izaakschroeder/s3-glob.git"
-	},
-	"main": "dist/glob.js",
-	"scripts": {
-		"prepublish": "./node_modules/.bin/babel -s inline -d dist ./src --source-maps true",
-		"test": "npm run lint && npm run spec && npm run coverage",
-		"spec": "NODE_ENV=test ./node_modules/.bin/_mocha -r test/helpers/chai.js --compilers js:babel-core/register -R spec test/spec",
-		"lint": "eslint --ignore-path .gitignore .",
-		"coverage": "istanbul check-coverage --statement 100 --branch 100 --function 100"
-	},
-	"dependencies": {
-		"lodash": "^3.10.1",
-		"aws-sdk": "^2.2.26",
-		"minimatch": "^3.0.0",
-		"s3-url": "^0.2.2"
-	},
-	"devDependencies": {
-		"babel-cli": "^6.1.21",
+  "name": "s3-glob",
+  "version": "0.2.0",
+  "author": "Izaak Schroeder <izaak.schroeder@gmail.com>",
+  "description": "Retrieve object list entries in S3 using minimatch-style globbing.",
+  "keywords": [
+    "s3",
+    "glob"
+  ],
+  "license": "CC0-1.0",
+  "homepage": "https://github.com/izaakschroeder/s3-glob",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/izaakschroeder/s3-glob.git"
+  },
+  "main": "dist/glob.js",
+  "scripts": {
+    "prepublish": "./node_modules/.bin/babel -s inline -d dist ./src --source-maps true",
+    "test": "npm run lint && npm run spec",
+    "spec": "NODE_ENV=test ./node_modules/.bin/_mocha -r test/helpers/chai.js -r babel-plugin-transform-adana/dump --compilers js:babel-core/register -R spec test/spec",
+    "lint": "eslint --ignore-path .gitignore ."
+  },
+  "dependencies": {
+    "lodash": "^3.10.1",
+    "aws-sdk": "^2.2.26",
+    "minimatch": "^3.0.0",
+    "s3-url": "^0.2.2"
+  },
+  "devDependencies": {
+    "babel-cli": "^6.1.21",
+    "babel-plugin-transform-adana": "^0.3.0",
     "babel-preset-metalab": "^0.1.1",
-		"eslint": "^2.0.0-alpha-2",
+    "chai": "^3.4.1",
+    "chai-things": "^0.2.0",
+    "eslint": "^2.0.0-alpha-2",
     "eslint-config-metalab": "^1.0.0-rc.1",
-		"mocha": "^2.3.4",
-		"istanbul": "^0.4.1",
-		"chai": "^3.4.1",
-		"chai-things": "^0.2.0",
-		"sinon": "^1.17.2",
-		"sinon-chai": "^2.8.0"
-	},
-	"engines" : {
-		"node" : "^0.10 || ^0.12 || ^4 || ^5"
-	}
+    "mocha": "^2.3.4",
+    "sinon": "^1.17.2",
+    "sinon-chai": "^2.8.0"
+  },
+  "engines": {
+    "node": "^0.10 || ^0.12 || ^4 || ^5"
+  }
 }
