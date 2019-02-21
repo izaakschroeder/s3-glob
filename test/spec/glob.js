@@ -3,12 +3,12 @@
 
 var _ = require('lodash'),
 	Minimatch = require('minimatch').Minimatch,
-	GlobStream = require('glob');
+	GlobStream = require('../../lib/glob');
 
 describe('GlobStream', function() {
 
 	beforeEach(function() {
-		this.sandbox = sinon.sandbox.create();
+		this.sandbox = sinon.createSandbox();
 		this.s3 = { listObjects: this.sandbox.stub() };
 	});
 
